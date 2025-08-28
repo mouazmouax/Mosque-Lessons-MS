@@ -1,8 +1,59 @@
 import { useState, useEffect } from 'react';
-import { divisionsApi, schoolRoomsApi, studentsApi, sessionsApi } from '../services/api';
+import { Division, SchoolRoom, Student, Session } from '../types';
+import { mockDivisions, mockSchoolRooms, mockStudents, mockSessions } from '../data/mockData';
 
-// Generic hook for API data
-function useApiData<T>(apiFunction: () => Promise<T[]>, dependencies: any[] = []) {
+// Simulate API delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Local storage keys
+const STORAGE_KEYS = {
+  divisions: 'mosque_divisions',
+  schoolRooms: 'mosque_school_rooms',
+  students: 'mosque_students',
+  sessions: 'mosque_sessions'
+};
+
+// Helper functions for localStorage
+const getFromStorage = <T>(key: string, defaultValue: T[]): T[] => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch (error) {
+    console.error(`Error reading from localStorage for key ${key}:`, error);
+    return defaultValue;
+  }
+};
+
+const saveToStorage = <T>(key: string, data: T[]) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error(`Error saving to localStorage for key ${key}:`, error);
+  }
+};
+
+// Initialize localStorage with mock data if empty
+const initializeStorage = () => {
+  if (!localStorage.getItem(STORAGE_KEYS.divisions)) {
+    saveToStorage(STORAGE_KEYS.divisions, mockDivisions);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.schoolRooms)) {
+    saveToStorage(STORAGE_KEYS.schoolRooms, mockSchoolRooms);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.students)) {
+    saveToStorage(STORAGE_KEYS.students, mockStudents);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.sessions)) {
+    saveToStorage(STORAGE_KEYS.sessions, mockSessions);
+  }
+};
+
+// Generic hook for mock API data
+function useApiData<T>(
+  storageKey: string,
+  defaultData: T[],
+  dependencies: any[] = []
+) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -11,8 +62,9 @@ function useApiData<T>(apiFunction: () => Promise<T[]>, dependencies: any[] = []
     try {
       setLoading(true);
       setError(null);
-      const result = await apiFunction();
-      setData(result);
+      await delay(300); // Simulate network delay
+      const storedData = getFromStorage(storageKey, defaultData);
+      setData(storedData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('API Error:', err);
@@ -22,20 +74,34 @@ function useApiData<T>(apiFunction: () => Promise<T[]>, dependencies: any[] = []
   };
 
   useEffect(() => {
+    initializeStorage();
     fetchData();
   }, dependencies);
 
-  return { data, loading, error, refetch: fetchData, setData };
+  const updateData = (newData: T[]) => {
+    setData(newData);
+    saveToStorage(storageKey, newData);
+  };
+
+  return { data, loading, error, refetch: fetchData, setData: updateData };
 }
 
-// Specific hooks for each entity
+// Divisions hook
 export const useDivisions = () => {
-  const { data, loading, error, refetch, setData } = useApiData(divisionsApi.getAll);
+  const { data, loading, error, refetch, setData } = useApiData<Division>(
+    STORAGE_KEYS.divisions,
+    mockDivisions
+  );
   
-  const addDivision = async (divisionData: any) => {
+  const addDivision = async (divisionData: Omit<Division, 'id'>) => {
     try {
-      const newDivision = await divisionsApi.create(divisionData);
-      setData(prev => [newDivision, ...prev]);
+      await delay(200);
+      const newDivision: Division = {
+        ...divisionData,
+        id: Date.now().toString()
+      };
+      const updatedData = [newDivision, ...data];
+      setData(updatedData);
       return newDivision;
     } catch (error) {
       console.error('Error adding division:', error);
@@ -43,11 +109,12 @@ export const useDivisions = () => {
     }
   };
 
-  const updateDivision = async (id: string, divisionData: any) => {
+  const updateDivision = async (id: string, divisionData: Partial<Division>) => {
     try {
-      const updatedDivision = await divisionsApi.update(id, divisionData);
-      setData(prev => prev.map(d => d.id === id ? updatedDivision : d));
-      return updatedDivision;
+      await delay(200);
+      const updatedData = data.map(d => d.id === id ? { ...d, ...divisionData } : d);
+      setData(updatedData);
+      return updatedData.find(d => d.id === id);
     } catch (error) {
       console.error('Error updating division:', error);
       throw error;
@@ -64,13 +131,26 @@ export const useDivisions = () => {
   };
 };
 
+// School Rooms hook
 export const useSchoolRooms = () => {
-  const { data, loading, error, refetch, setData } = useApiData(schoolRoomsApi.getAll);
+  const { data, loading, error, refetch, setData } = useApiData<SchoolRoom>(
+    STORAGE_KEYS.schoolRooms,
+    mockSchoolRooms
+  );
   
-  const addSchoolRoom = async (roomData: any) => {
+  const addSchoolRoom = async (roomData: Omit<SchoolRoom, 'id'>) => {
     try {
-      const newRoom = await schoolRoomsApi.create(roomData);
-      setData(prev => [newRoom, ...prev]);
+      await delay(200);
+      const newRoom: SchoolRoom = {
+        ...roomData,
+        id: Date.now().toString(),
+        teacher: {
+          ...roomData.teacher,
+          id: roomData.teacher.id || Date.now().toString()
+        }
+      };
+      const updatedData = [newRoom, ...data];
+      setData(updatedData);
       return newRoom;
     } catch (error) {
       console.error('Error adding school room:', error);
@@ -78,11 +158,12 @@ export const useSchoolRooms = () => {
     }
   };
 
-  const updateSchoolRoom = async (id: string, roomData: any) => {
+  const updateSchoolRoom = async (id: string, roomData: Partial<SchoolRoom>) => {
     try {
-      const updatedRoom = await schoolRoomsApi.update(id, roomData);
-      setData(prev => prev.map(r => r.id === id ? updatedRoom : r));
-      return updatedRoom;
+      await delay(200);
+      const updatedData = data.map(r => r.id === id ? { ...r, ...roomData } : r);
+      setData(updatedData);
+      return updatedData.find(r => r.id === id);
     } catch (error) {
       console.error('Error updating school room:', error);
       throw error;
@@ -99,13 +180,22 @@ export const useSchoolRooms = () => {
   };
 };
 
+// Students hook
 export const useStudents = () => {
-  const { data, loading, error, refetch, setData } = useApiData(studentsApi.getAll);
+  const { data, loading, error, refetch, setData } = useApiData<Student>(
+    STORAGE_KEYS.students,
+    mockStudents
+  );
   
-  const addStudent = async (studentData: any) => {
+  const addStudent = async (studentData: Omit<Student, 'id'>) => {
     try {
-      const newStudent = await studentsApi.create(studentData);
-      setData(prev => [newStudent, ...prev]);
+      await delay(200);
+      const newStudent: Student = {
+        ...studentData,
+        id: Date.now().toString()
+      };
+      const updatedData = [newStudent, ...data];
+      setData(updatedData);
       return newStudent;
     } catch (error) {
       console.error('Error adding student:', error);
@@ -113,11 +203,12 @@ export const useStudents = () => {
     }
   };
 
-  const updateStudent = async (id: string, studentData: any) => {
+  const updateStudent = async (id: string, studentData: Partial<Student>) => {
     try {
-      const updatedStudent = await studentsApi.update(id, studentData);
-      setData(prev => prev.map(s => s.id === id ? updatedStudent : s));
-      return updatedStudent;
+      await delay(200);
+      const updatedData = data.map(s => s.id === id ? { ...s, ...studentData } : s);
+      setData(updatedData);
+      return updatedData.find(s => s.id === id);
     } catch (error) {
       console.error('Error updating student:', error);
       throw error;
@@ -134,13 +225,22 @@ export const useStudents = () => {
   };
 };
 
+// Sessions hook
 export const useSessions = () => {
-  const { data, loading, error, refetch, setData } = useApiData(sessionsApi.getAll);
+  const { data, loading, error, refetch, setData } = useApiData<Session>(
+    STORAGE_KEYS.sessions,
+    mockSessions
+  );
   
-  const addSession = async (sessionData: any) => {
+  const addSession = async (sessionData: Omit<Session, 'id'>) => {
     try {
-      const newSession = await sessionsApi.create(sessionData);
-      setData(prev => [newSession, ...prev]);
+      await delay(200);
+      const newSession: Session = {
+        ...sessionData,
+        id: Date.now().toString()
+      };
+      const updatedData = [newSession, ...data];
+      setData(updatedData);
       return newSession;
     } catch (error) {
       console.error('Error adding session:', error);
@@ -148,11 +248,12 @@ export const useSessions = () => {
     }
   };
 
-  const updateSession = async (id: string, sessionData: any) => {
+  const updateSession = async (id: string, sessionData: Partial<Session>) => {
     try {
-      const updatedSession = await sessionsApi.update(id, sessionData);
-      setData(prev => prev.map(s => s.id === id ? updatedSession : s));
-      return updatedSession;
+      await delay(200);
+      const updatedData = data.map(s => s.id === id ? { ...s, ...sessionData } : s);
+      setData(updatedData);
+      return updatedData.find(s => s.id === id);
     } catch (error) {
       console.error('Error updating session:', error);
       throw error;

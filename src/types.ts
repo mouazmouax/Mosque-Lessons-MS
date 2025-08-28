@@ -1,6 +1,16 @@
+export interface Division {
+  id: string;
+  name: string;
+  schedule: string;
+  archived: boolean;
+}
+
 export interface Teacher {
   id: string;
   name: string;
+  email?: string;
+  phone?: string;
+  specialization?: string;
 }
 
 export interface SchoolRoom {
@@ -12,24 +22,17 @@ export interface SchoolRoom {
   currentStudents: number;
 }
 
-export interface Division {
-  id: string;
-  name: string;
-  schedule: string;
-  archived: boolean;
-}
-
 export interface Student {
   id: string;
   name: string;
-  birthday: string; // Year only (e.g., "2010")
+  birthday: string;
   fatherName?: string;
   phone?: string;
   fatherPhone?: string;
   motherPhone?: string;
   schoolRoomId: string;
   joinDate: string;
-  latestQuranPart: string; // جزء من القرآن (عم، تبارك، 1-28)
+  latestQuranPart: string;
   archived: boolean;
 }
 
@@ -38,24 +41,26 @@ export interface Session {
   divisionId: string;
   schoolRoomId: string;
   date: string;
+  topic: string;
   attendance: Record<string, boolean>;
   quranRecitation: Record<string, {
-    recitedText: string; // المسمع (كتابة)
-    pagesCount: number; // المسمع (رقم يعبر عن عدد الصفحات)
-    evaluation: 'وسط' | 'جيد' | 'جيد جدا' | 'ممتاز'; // تقييم التسميع
+    recitedText: string;
+    pagesCount: number;
+    evaluation: 'وسط' | 'جيد' | 'جيد جدا' | 'ممتاز';
   }>;
   bookReading: Record<string, {
-    bookNames: string; // أسماء الكتب
-    pagesCount: number; // عدد الصفحات
-    withSummary: boolean; // مع تلخيص أو بدون
+    bookNames: string;
+    pagesCount: number;
+    withSummary: boolean;
   }>;
 }
 
-export interface BookProgress {
-  studentId: string;
-  bookName: string;
-  totalPages: number;
-  pagesCompleted: number;
-  startDate: string;
-  lastUpdated: string;
+export interface Class {
+  id: string;
+  name: string;
+  description: string;
+  schedule: string;
+  maxStudents: number;
+  currentStudents: number;
+  teacher: Teacher;
 }

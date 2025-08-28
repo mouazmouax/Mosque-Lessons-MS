@@ -43,6 +43,8 @@ const Students: React.FC<StudentsProps> = ({
     latestQuranPart: 'جزء عم'
   });
 
+
+
   const availableSchoolRooms = schoolRooms.filter(sr => sr.divisionId === selectedDivisionId);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,7 +81,7 @@ const Students: React.FC<StudentsProps> = ({
       fatherPhone: '',
       motherPhone: '',
       schoolRoomId: '',
-      latestQuranPart: 1
+      latestQuranPart: 'جزء عم'
     });
     setSelectedDivisionId('');
   };
@@ -490,8 +492,7 @@ const Students: React.FC<StudentsProps> = ({
               onChange={(e) => setFormData({ ...formData, fatherPhone: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500"
             />
-
-        </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">هاتف الوالدة (اختياري)</label>

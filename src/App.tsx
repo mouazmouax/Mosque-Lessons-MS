@@ -11,11 +11,20 @@ import { useDivisions, useSchoolRooms, useStudents, useSessions } from './hooks/
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Use API hooks
+  // Use mock API hooks
   const { divisions, addDivision, updateDivision } = useDivisions();
   const { schoolRooms, addSchoolRoom, updateSchoolRoom } = useSchoolRooms();
   const { students, addStudent, updateStudent } = useStudents();
   const { sessions, addSession, updateSession, setSessions } = useSessions();
+
+  // Helper function to update school room student count
+  const updateSchoolRoomStudentCount = (schoolRoomId: string, increment: number) => {
+    updateSchoolRoom(schoolRoomId, {
+      currentStudents: Math.max(0, 
+        (schoolRooms.find(r => r.id === schoolRoomId)?.currentStudents || 0) + increment
+      )
+    });
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -46,6 +55,7 @@ function App() {
             divisions={divisions}
             onAddStudent={addStudent} 
             onUpdateStudent={updateStudent}
+            onUpdateSchoolRoomStudentCount={updateSchoolRoomStudentCount}
           />
         );
       case 'sessions':
